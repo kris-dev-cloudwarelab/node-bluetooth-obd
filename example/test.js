@@ -15,6 +15,39 @@
  * Author: Eric Smekens
  */
 
+/// Websocket
+var W3CWebSocket = require('websocket').w3cwebsocket;
+ 
+var client = new W3CWebSocket('ws://localhost:1880/obd', 'echo-protocol');
+ 
+client.onerror = function() {
+    console.log('Connection Error');
+};
+ 
+client.onopen = function() {
+    console.log('WebSocket Client Connected');
+ 
+    function sendNumber() {
+        if (client.readyState === client.OPEN) {
+            var number = Math.round(Math.random() * 0xFFFFFF);
+            client.send(number.toString());
+            setTimeout(sendNumber, 1000);
+        }
+    }
+    sendNumber();
+};
+ 
+client.onclose = function() {
+    console.log('echo-protocol Client Closed');
+};
+ 
+client.onmessage = function(e) {
+    if (typeof e.data === 'string') {
+        console.log("Received: '" + e.data + "'");
+    }
+};
+
+/// OBD
 var OBDReader = require('../lib/obd.js');
 var btOBDReader = new OBDReader();
 
@@ -26,8 +59,9 @@ var btOBDReader = new OBDReader();
 
 btOBDReader.on('dataReceived', function (data) {
     var currentDate = new Date();
-    console.log(currentDate.getTime());
+    //console.log(currentDate.getTime());
     console.log(data);
+	client.send(data.toString());
 });
 
 btOBDReader.on('connected', function () {
@@ -38,6 +72,8 @@ btOBDReader.on('connected', function () {
     this.addPoller("map");
     this.addPoller("frp");
 
+	this.listPollers();
+	
     this.startPolling(1500);
 });
 
